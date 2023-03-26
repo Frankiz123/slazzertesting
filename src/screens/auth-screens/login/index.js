@@ -1,23 +1,24 @@
-import React, {useState} from 'react';
+import React, {useState, useContext} from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 
 import {useNavigation} from '@react-navigation/native';
 
 import {styles} from './styles';
-import {mockLoginApi} from '../../../utils';
 import {userLogIn} from '../../../utils/apis-client';
+import {ApplicationContext} from '../../../utils/context-api/Context';
 
 const Login = () => {
   const [email, setEmail] = useState('a@gmail.com');
   const [password, setPassword] = useState('123');
   const [loading, setLoading] = useState(false);
+
+  const {setToken} = useContext(ApplicationContext);
 
   const navigation = useNavigation();
 
@@ -37,6 +38,7 @@ const Login = () => {
       if (isLoggedIn.token) {
         // successful login
         setLoading(false);
+        setToken(isLoggedIn?.token);
         navigation.navigate('AddProductScreen');
         console.log('Logged in successfully');
       } else {

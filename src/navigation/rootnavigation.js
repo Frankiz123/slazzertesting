@@ -13,7 +13,7 @@ const RootNavigation = () => {
   const Stack = createNativeStackNavigator();
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="ImagesScreen">
+      <Stack.Navigator initialRouteName="Login">
         <Stack.Screen
           name="Login"
           options={{

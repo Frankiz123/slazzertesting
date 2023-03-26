@@ -1,4 +1,4 @@
-import React, {useState, useContext} from 'react';
+import React, {useState, useContext, useEffect} from 'react';
 import {
   View,
   Button,
@@ -9,27 +9,18 @@ import {
   ScrollView,
 } from 'react-native';
 
-import RNFS from 'react-native-fs';
-import RNFetchBlob from 'rn-fetch-blob';
-
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {ApplicationContext} from '../../../utils/context-api/Context';
 import {SelectList} from 'react-native-dropdown-select-list';
 
 import {styles} from './styles';
+import {slazzerApi, userBrand} from '../../../utils/apis-client';
 
 const ImagesScreen = ({route}) => {
   // const {scannedValue} = route.params;
-  const {userBrandData} = useContext(ApplicationContext);
+  const {userBrandData, token} = useContext(ApplicationContext);
 
-  const settings = {
-    url: 'https://api.slazzer.com/v2.0/remove_image_background',
-    apiKey: '2c3a3aac72434b0888c439bca78ae6d9',
-    sourceImagePath: filePath1,
-    outputImagePath: RNFS.DocumentDirectoryPath + '/output.png',
-  };
-
-  const [imageSource, setImageSource] = useState(null);
+  const [brandData, setBrandData] = useState([]);
   const [selected, setSelected] = useState('');
   const [text, setText] = useState('');
 
@@ -38,34 +29,18 @@ const ImagesScreen = ({route}) => {
   const [filePath2, setFilePath2] = useState(null);
   const [filePath3, setFilePath3] = useState([]);
 
-  const slazzerApi = async () => {
-    await RNFetchBlob.fetch(
-      'POST',
-      settings.url,
-      {
-        'API-KEY': settings.apiKey,
-        'Content-Type': 'multipart/form-data',
-      },
-      [
-        {
-          name: 'source_image_file',
-          filename: settings.sourceImagePath,
-          data: RNFetchBlob.wrap(settings.sourceImagePath),
-        },
-      ],
-    )
-      .then(response => {
-        if (response.info().status !== 200) {
-          console.log(response.data);
-          return;
-        }
-        RNFS.writeFile(settings.outputImagePath, response.data, 'base64')
-          .then(() => {
-            console.log('File saved successfully');
-          })
-          .catch(error => console.error(error));
-      })
-      .catch(error => console.error(error));
+  useEffect(() => {
+    userBrandHandler(token);
+  }, []);
+
+  const userBrandHandler = async token => {
+    const response = await userBrand(token);
+    console.log('response Brands :: ', response);
+    const newarr = [];
+    response.map((val, index) =>
+      newarr.push({key: index, value: val.Name, id: val.id}),
+    );
+    setBrandData(newarr);
   };
 
   const requestCameraPermission = async () => {
@@ -107,6 +82,11 @@ const ImagesScreen = ({route}) => {
     } else return true;
   };
 
+  const slazzerApiHandler = async imageUrl => {
+    const response = await slazzerApi(imageUrl);
+    console.log('response :: ', response);
+  };
+
   const captureImage = async type => {
     let options = {
       mediaType: type,
@@ -146,7 +126,6 @@ const ImagesScreen = ({route}) => {
         // console.log('fileName -> ', response.fileName);
         console.log('response camera :: ', response);
         // setFilePath(response.assets[0]);
-        slazzerApi();
         setFilePath3(prevImages => [...prevImages, response.assets[0]]);
       });
     }
@@ -190,6 +169,7 @@ const ImagesScreen = ({route}) => {
         // console.log('type -> ', response.type);
         // console.log('fileName -> ', response.fileName);
         console.log('response camera :: ', response.assets);
+        slazzerApiHandler(response.assets[0].uri);
         setFilePath1(response.assets[0]);
       });
     }
@@ -301,8 +281,22 @@ const ImagesScreen = ({route}) => {
       console.log('height -> ', response.height);
       console.log('fileSize -> ', response.fileSize);
       console.log('type -> ', response.type);
-      console.log('fileName -> ', response.fileName);
-      setFilePath2(response.assets[0]);
+      console.log('fileName -> ', response);
+      // setFilePath2(response.assets[0]);
+      const formData = new FormData();
+      const fileValue = response.assets[0].uri;
+      let newFiles = {
+        uri:
+          Platform.OS === 'ios'
+            ? fileValue
+            : fileValue.replace('file://', 'file:'),
+        name: `${Date.now()}.jpg`,
+        type: 'image/jpeg',
+      };
+      formData.append('source_image_file', newFiles);
+      // slazzerApiHandler(response.assets[0].uri.replace('/^file?:///i, ""'));
+      slazzerApiHandler(formData);
+      setFilePath1(response.assets[0]);
     });
   };
 
@@ -352,6 +346,11 @@ const ImagesScreen = ({route}) => {
     }
   };
 
+  const onChangeSectionList = val => {
+    console.log('section change :: ', val);
+    setSelected(val);
+  };
+
   console.log('img 1 : ', filePath3);
   return (
     <ScrollView
@@ -373,9 +372,9 @@ const ImagesScreen = ({route}) => {
         {/* <Text style={{fontSize: 32}}>Scanned Value is ::: {scannedValue}</Text> */}
         <View>
           <SelectList
-            setSelected={val => setSelected(val)}
-            data={userBrandData}
-            save="value"
+            setSelected={onChangeSectionList}
+            data={brandData}
+            save="id"
           />
         </View>
         {filePath1 && (
@@ -386,7 +385,8 @@ const ImagesScreen = ({route}) => {
         )}
         <Button
           title="Primary Image"
-          onPress={() => captureImagePrimary('photo')}
+          // onPress={() => captureImagePrimary('photo')}
+          onPress={() => chooseFile2('photo')}
         />
         {filePath2 && (
           <Image

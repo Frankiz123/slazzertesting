@@ -1,6 +1,7 @@
 // Develop api
 
 const baseURL = `https://product-data-collector-backend-production.up.railway.app/`;
+const baseUrlSlazer = `https://api.slazzer.com/v2.0/remove_image_background`;
 
 const endpoints = {
   userLogin: `users/signin`,
@@ -17,6 +18,11 @@ const methods = {
 const header = {
   simpleHeader: {
     'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+  },
+
+  jsonSlazzerHeader: {
+    'Content-Type': 'multipart/form-data',
+    'API-KEY': '2c3a3aac72434b0888c439bca78ae6d9',
   },
   jsonHeader: {
     Accept: 'application/json',
@@ -42,4 +48,11 @@ async function authenticatedHeader() {
   };
 }
 
-export {baseURL, endpoints, methods, header, authenticatedHeader};
+export {
+  baseURL,
+  baseUrlSlazer,
+  endpoints,
+  methods,
+  header,
+  authenticatedHeader,
+};
