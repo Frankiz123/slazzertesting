@@ -47,8 +47,8 @@ const ScannerScreen = () => {
           }}>
           <TouchableOpacity
             onPress={() => {
-              // setScannerBool(true);
-              navigation.navigate('ImagesScreen');
+              setScannerBool(true);
+              // navigation.navigate('ImagesScreen');
             }}
             style={{
               backgroundColor: '#a1cdf1',

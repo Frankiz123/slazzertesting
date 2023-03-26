@@ -6,6 +6,7 @@ const baseUrlSlazer = `https://api.slazzer.com/v2.0/remove_image_background`;
 const endpoints = {
   userLogin: `users/signin`,
   brands: `brands/`,
+  productsAdd: `products/add`,
 };
 
 const methods = {
