@@ -7,6 +7,7 @@ const endpoints = {
   userLogin: `users/signin`,
   brands: `brands/`,
   productsAdd: `products/add`,
+  slazzer: `slazzer`,
 };
 
 const methods = {

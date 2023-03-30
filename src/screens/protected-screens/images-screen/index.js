@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import base64 from 'base64-js';
 
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {ApplicationContext} from '../../../utils/context-api/Context';
@@ -15,7 +16,12 @@ import {SelectList} from 'react-native-dropdown-select-list';
 import RNFS from 'react-native-fs';
 
 import {styles} from './styles';
-import {slazzerApi, userBrand} from '../../../utils/apis-client';
+import {
+  productsAddApi,
+  slazzerApi,
+  slazzerCustomApi,
+  userBrand,
+} from '../../../utils/apis-client';
 
 const ImagesScreen = ({route}) => {
   const {scannedValue} = route.params;
@@ -24,6 +30,7 @@ const ImagesScreen = ({route}) => {
   const [brandData, setBrandData] = useState([]);
   const [selected, setSelected] = useState('');
   const [text, setText] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const [primaryBase64, setPrimaryBase64] = useState(null);
   const [secondaryBase64, setSecondaryBase64] = useState(null);
@@ -36,6 +43,45 @@ const ImagesScreen = ({route}) => {
   useEffect(() => {
     userBrandHandler(token);
   }, []);
+
+  const slazzerCustomApiPrimaryHandler = async (image, token) => {
+    console.log('newapi', image);
+    setLoading(true);
+    try {
+      const response = await slazzerCustomApi(image, token);
+      console.log('hamza api Response Slazzer :: ', response.data);
+      setFilePath1(response.data);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
+  const slazzerCustomApiSecondaryHandler = async (image, token) => {
+    console.log('newapi', image);
+    setLoading(true);
+    try {
+      const response = await slazzerCustomApi(image, token);
+      console.log('hamza api Response Slazzer :: ', response.data);
+      setFilePath2(response.data);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+  const slazzerCustomApiMultipleHandler = async (image, token) => {
+    console.log('newapi', image);
+    setLoading(true);
+    try {
+      const response = await slazzerCustomApi(image, token);
+      console.log('hamza api Response Slazzer :: ', response.data);
+      setListBase64(prevImages => [...prevImages, response.data]);
+      setFilePath3(prevImages => [...prevImages, response.data]);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
 
   const userBrandHandler = async token => {
     const response = await userBrand(token);
@@ -88,7 +134,25 @@ const ImagesScreen = ({route}) => {
 
   const slazzerApiHandler = async imageUrl => {
     const response = await slazzerApi(imageUrl);
-    console.log('response :: ', response);
+    console.log('response :: ', response.data);
+    const base64String = arrayBufferToBase64(response.data);
+    console.log('base64String :: ', base64String);
+    setFilePath1(base64String);
+    // setImageUri(base64data);
+    // const arrayBufferView = new Uint8Array(response.data);
+    // const blob = new Blob([arrayBufferView], {type: 'image/jpeg'});
+    // const reader = new FileReader();
+    // reader.readAsDataURL(blob);
+    // reader.onloadend = () => {
+    //   const base64data = reader.result;
+    //   console.log('base64Data :::: ', base64data);
+    //   setImageUri(base64data);
+    // };
+  };
+
+  const arrayBufferToBase64 = buffer => {
+    const binary = String.fromCharCode(...new Uint8Array(buffer));
+    return base64.fromByteArray(binary);
   };
 
   const captureImage = async type => {
@@ -121,29 +185,21 @@ const ImagesScreen = ({route}) => {
           alert(response.errorMessage);
           return;
         }
-        // console.log('base64 -> ', response.base64);
-        // console.log('uri -> ', response.uri);
-        // console.log('width -> ', response.width);
-        // console.log('height -> ', response.height);
-        // console.log('fileSize -> ', response.fileSize);
-        // console.log('type -> ', response.type);
-        // console.log('fileName -> ', response.fileName);
+
         console.log('response camera :: ', response);
         // setFilePath(response.assets[0]);
         const fileName = response.assets[0].uri;
-        RNFS.readFile(fileName, 'base64')
-          .then(base64 => {
-            // Add base64 data to form data
-            console.log('value of base64 :: ', base64);
-            // setPrimaryBase64(base64);
-            setListBase64(prevImages => [...prevImages, base64]);
-            // Make API call with form data
-            // ...
-          })
-          .catch(error => {
-            console.log(error);
-          });
-        setFilePath3(prevImages => [...prevImages, response.assets[0]]);
+        RNFS.readFile(fileName, 'base64').then(base64 => {
+          // Add base64 data to form data
+          console.log('value of base64 :: ', base64);
+          // setPrimaryBase64(base64);
+
+          // Make API call with form data
+          // ...
+        });
+        fetchURI3Image(response.assets[0].uri).catch(error => {
+          console.log(error);
+        });
       });
     }
   };
@@ -192,8 +248,8 @@ const ImagesScreen = ({route}) => {
           .catch(error => {
             console.log(error);
           });
-        // fetchURIImage(response.assets[0].uri);
-        setFilePath1(response.assets[0]);
+        fetchURIImage(response.assets[0].uri);
+        // setFilePath1(response.assets[0]);
       });
     }
   };
@@ -228,20 +284,58 @@ const ImagesScreen = ({route}) => {
           alert(response.errorMessage);
           return;
         }
-        // console.log('base64 -> ', response.base64);
-        // console.log('uri -> ', response.uri);
-        // console.log('width -> ', response.width);
-        // console.log('height -> ', response.height);
-        // console.log('fileSize -> ', response.fileSize);
-        // console.log('type -> ', response.type);
-        // console.log('fileName -> ', response.fileName);
-        // console.log('response camera :: ', response.assets);
         const fileName = response.assets[0].uri;
         RNFS.readFile(fileName, 'base64')
           .then(base64 => {
             // Add base64 data to form data
             console.log('value of base64 :: ', base64);
-            setSecondaryBase64(base64);
+
+            // Make API call with form data
+            // ...
+          })
+          .catch(error => {
+            console.log(error);
+          });
+        fetchURI2Image(response.assets[0].uri);
+      });
+    }
+  };
+  const captureImageMulti = async type => {
+    let options = {
+      mediaType: type,
+      maxWidth: 300,
+      maxHeight: 550,
+      quality: 1,
+      videoQuality: 'low',
+      durationLimit: 30, //Video max duration in seconds
+      saveToPhotos: true,
+      allowsMultipleSelection: true,
+    };
+    let isCameraPermitted = await requestCameraPermission();
+    let isStoragePermitted = await requestExternalWritePermission();
+    if (isCameraPermitted && isStoragePermitted) {
+      launchCamera(options, response => {
+        console.log('Response = ', response);
+
+        if (response.didCancel) {
+          alert('User cancelled camera picker');
+          return;
+        } else if (response.errorCode == 'camera_unavailable') {
+          alert('Camera not available on device');
+          return;
+        } else if (response.errorCode == 'permission') {
+          alert('Permission not satisfied');
+          return;
+        } else if (response.errorCode == 'others') {
+          alert(response.errorMessage);
+          return;
+        }
+        const fileName = response.assets[0].uri;
+        RNFS.readFile(fileName, 'base64')
+          .then(base64 => {
+            // Add base64 data to form data
+            console.log('value of base64 :: ', base64);
+            slazzerCustomApiMultipleHandler(base64);
             // Make API call with form data
             // ...
           })
@@ -283,6 +377,7 @@ const ImagesScreen = ({route}) => {
       console.log('fileSize -> ', response.fileSize);
       console.log('type -> ', response.type);
       console.log('fileName -> ', response.fileName);
+      fetchURIImage(response.assets[0].uri);
       setFilePath1(response.assets[0]);
     });
   };
@@ -324,30 +419,21 @@ const ImagesScreen = ({route}) => {
   };
 
   const fetchURIImage = async imagePath => {
-    // console.log('response fetchbloob imagePath :: ', imagePath);
-    // const fileName = imagePath.split('/').pop();
-    // const fileType = fileName.split('.').pop();
-    // const formData = new FormData();
-    // // formData.append('file', {
-    // //   uri: imagePath,
-    // //   name: fileName,
-    // //   type: `image/${fileType}`,
-    // // });
-    // RNFS.readFile(imagePath, 'base64')
-    //   .then(base64 => {
-    //     // Add base64 data to form data
-    //     console.log('value of base64 :: ', base64);
-    //     formData.append('source_image_base64', base64);
-    //     // Make API call with form data
-    //     // ...
-    //   })
-    //   .catch(error => {
-    //     console.log(error);
-    //   });
-    // slazzerApiHandler(formData);
-    // return;
+    console.log('response fetchbloob imagePath :: ', imagePath);
+    const fileName = imagePath.split('/').pop();
+    const fileType = fileName.split('.').pop();
+    RNFS.readFile(imagePath, 'base64')
+      .then(base64 => {
+        // Add base64 data to form data
+        console.log('value of base64 :: ', base64);
+        slazzerCustomApiPrimaryHandler(base64, token);
+      })
+      .catch(error => {
+        console.log(error);
+      });
+    return;
     const fileValue = imagePath;
-    const formData = new FormData();
+    // const formData = new FormData();
     let newFiles = {
       uri:
         Platform.OS === 'ios'
@@ -362,53 +448,70 @@ const ImagesScreen = ({route}) => {
     setFilePath1(response.assets[0].uri);
   };
 
-  const chooseFile3 = type => {
-    let options = {
-      mediaType: type,
-      maxWidth: 300,
-      maxHeight: 550,
-      quality: 1,
-      allowsMultipleSelection: true,
-      selectionLimit: 150,
+  const fetchURI2Image = async imagePath => {
+    console.log('response fetchbloob imagePath :: ', imagePath);
+    const fileName = imagePath.split('/').pop();
+    const fileType = fileName.split('.').pop();
+    RNFS.readFile(imagePath, 'base64')
+      .then(base64 => {
+        // Add base64 data to form data
+        console.log('value of base64 :: ', base64);
+        slazzerCustomApiSecondaryHandler(base64, token);
+      })
+      .catch(error => {
+        console.log(error);
+      });
+    return;
+    const fileValue = imagePath;
+    // const formData = new FormData();
+    let newFiles = {
+      uri:
+        Platform.OS === 'ios'
+          ? fileValue
+          : fileValue.replace('file://', 'file:'),
+      name: `${Date.now()}.jpg`,
+      type: 'image/jpeg',
     };
-    launchImageLibrary(options, response => {
-      console.log('Response = ', response);
+    formData.append('source_image_file', newFiles);
+    // slazzerApiHandler(response.assets[0].uri.replace('/^file?:///i, ""'));
+    slazzerApiHandler(formData);
+    setFilePath1(response.assets[0].uri);
+  };
 
-      if (response.didCancel) {
-        alert('User cancelled camera picker');
-        return;
-      } else if (response.errorCode == 'camera_unavailable') {
-        alert('Camera not available on device');
-        return;
-      } else if (response.errorCode == 'permission') {
-        alert('Permission not satisfied');
-        return;
-      } else if (response.errorCode == 'others') {
-        alert(response.errorMessage);
-        return;
-      }
-      console.log('base64 -> ', response.base64);
-      console.log('uri -> ', response.uri);
-      console.log('width -> ', response.width);
-      console.log('height -> ', response.height);
-      console.log('fileSize -> ', response.fileSize);
-      console.log('type -> ', response.type);
-      console.log('fileName -> ', response.fileName);
-      setFilePath3(response.assets);
-    });
+  const fetchURI3Image = async imagePath => {
+    RNFS.readFile(imagePath, 'base64')
+      .then(base64 => {
+        // Add base64 data to form data
+        slazzerCustomApiMultipleHandler(base64, token);
+      })
+      .catch(error => {
+        console.log(error);
+      });
   };
 
   const handleRemoveImage = index => console.log(index);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (filePath1 && filePath2 && filePath3.length > 0 && text.length > 0) {
-      alert('image is saved');
-      console.log('primaryBase64 >> ', primaryBase64);
-      console.log('secondaryBase64 >> ', secondaryBase64);
-      console.log('listBase64 >> ', listBase64);
-      console.log('brandedId >> ', brandedId);
-      console.log('text >> ', text);
-      console.log('token >> ', token);
+      // console.log('primaryBase64 >> ', primaryBase64);
+      // console.log('secondaryBase64 >> ', secondaryBase64);
+      // console.log('listBase64 >> ', listBase64);
+      // console.log('brandedId >> ', brandedId);
+      // console.log('text >> ', text);
+      // console.log('token >> ', token);
+      let valarr = {
+        Image: listBase64,
+      };
+      let response = await productsAddApi(
+        text,
+        scannedValue,
+        brandedId,
+        primaryBase64,
+        secondaryBase64,
+        valarr,
+        token,
+      );
+      alert('Item is successfully added');
     } else {
       alert('you are missing somethings');
     }
@@ -421,25 +524,12 @@ const ImagesScreen = ({route}) => {
     setBrandedId(indexval.id);
     setSelected(val);
   };
-
-  console.log('img 1 : ', filePath3);
   return (
     <ScrollView
-      contentContainerStyle={{
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        padding: 10,
-      }}
+      contentContainerStyle={styles.scrollView_Container}
       scrollEnabled
       nestedScrollEnabled>
-      <View
-        style={{
-          padding: 20,
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
+      <View style={styles.main_Container}>
         <Text style={{fontSize: 32}}>Scanned Value is ::: {scannedValue}</Text>
         <View>
           <SelectList
@@ -448,77 +538,56 @@ const ImagesScreen = ({route}) => {
             save="id"
           />
         </View>
+
         {filePath1 && (
           <Image
-            source={{uri: filePath1?.uri}}
+            source={{uri: `${filePath1}`}}
             style={{width: 200, height: 200}}
           />
         )}
         <Button
           title="Primary Image"
+          disabled={loading}
           onPress={() => captureImagePrimary('photo')}
-          // onPress={() => chooseFile2('photo')}
         />
+
         {filePath2 && (
-          <Image
-            source={{uri: filePath2?.uri}}
-            style={{width: 200, height: 200}}
-          />
+          <Image source={{uri: filePath2}} style={{width: 200, height: 200}} />
         )}
         <Button
           title="Secondary Image"
+          disabled={loading}
           onPress={() => captureImageSecondry('photo')}
         />
-        {/* {filePath3 && (
-          <Image
-            source={{uri: filePath3.uri}}
-            style={{width: 200, height: 200}}
-          />
-        )} */}
+
         {filePath3 &&
           filePath3?.map((image, index) => (
             <TouchableOpacity
               key={index}
               style={styles.imageWrapper}
+              disabled={loading}
               onPress={() => handleRemoveImage(index)}>
-              <Image source={{uri: image.uri}} style={styles.image} />
+              <Image source={{uri: image}} style={styles.image} />
             </TouchableOpacity>
           ))}
         <Button
           title="Additional Images"
+          disabled={loading}
           onPress={() => captureImage('photo')}
         />
+
         <TextInput
           placeholder="Enter your product name"
           value={text}
           onChangeText={setText}
-          style={{
-            borderWidth: 1,
-            borderColor: '#ccc',
-            padding: 10,
-            borderRadius: 5,
-            width: '80%',
-            fontSize: 18,
-            marginTop: 30,
-          }}
+          style={styles.inputStyling}
         />
+
         <TouchableOpacity
-          style={{
-            backgroundColor: '#d496a7',
-            padding: 15,
-            borderRadius: 5,
-            marginTop: 20,
-            width: '80%',
-            alignItems: 'center',
-          }}
+          style={styles.handleSubmitStyle}
+          disabled={loading}
           onPress={handleSubmit}>
-          <Text
-            style={{
-              color: '#fff',
-              fontSize: 18,
-            }}>
-            Submit
-          </Text>
+          <Text style={styles.textSubmit}>Submit</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
